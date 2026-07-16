@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>꿈비 안성창고 - AI 스마트 재고 검증 시스템</title>
+    <style>
+        :root {
+            --primary-color: #2b5c8f;
+            --primary-dark: #1e3f63;
+            --accent-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 20pt;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 10.5pt;
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 12pt;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary-dark);
+            border-left: 4px solid var(--primary-color);
+            padding-left: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 파일 업로드 스타일 */
+        .file-upload-wrapper {
+            position: relative;
+            border: 2px dashed var(--primary-color);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background-color: #f1f5f9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload-wrapper:hover {
+            background-color: #e2e8f0;
+        }
+
+        .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-icon {
+            font-size: 24pt;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        /* PDA / 모바일 스캐너 스타일 */
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 11pt;
+            font-weight: bold;
+        }
+
+        .search-box button {
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-box button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        /* 판정 결과 알림 구역 */
+        #result-display {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12pt;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-safe {
+            background-color: #e8f8f5;
+            color: var(--success-color);
+            border: 2px solid var(--success-color);
+        }
+
+        .status-lock {
+            background-color: #fdedec;
+            color: var(--accent-color);
+            border: 2px solid var(--accent-color);
+        }
+
+        .status-warn {
+            background-color: #fef9e7;
+            color: var(--warning-color);
+            border: 2px solid var(--warning-color);
+        }
+
+        /* 테이블 스타일 */
+        .table-container {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: var(--primary-dark);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 8pt;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .badge-lock {
+            background-color: #fdedec;
+            color: var(--accent-color);
+        }
+
+        .badge-safe {
+            background-color: #e8f8f5;
+            color: var(--success-color);
+        }
+
+        /* 가이드 텍스트 */
+        .guide-list {
+            margin-left: 20px;
+            font-size: 10pt;
+            color: #475569;
+        }
+
+        .guide-list li {
+            margin-bottom: 8px;
+        }
+
+        .tab-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 20px;
+            font-size: 9pt;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>꿈비 안성창고 재고 혼선 방지 툴</h1>
+        <p>B2B 배송대기(할당) 실시간 체크 및 로케이션 이적 검증 시스템 (GitHub Pages)</p>
+    </header>
+
+    <!-- 1단계: WMS 데이터 로드 -->
+    <div class="card">
+        <div class="card-title">
+            <span>Step 1: 당일 WMS 재고 데이터 업로드 (CSV)</span>
+            <span id="data-status" style="font-size: 9pt; color: var(--accent-color); font-weight: normal;">● 데이터 없음 (대기 중)</span>
+        </div>
+        <div class="file-upload-wrapper">
+            <div class="file-upload-icon">📊</div>
+            <p><strong>WMS에서 내보낸 Excel/CSV 파일을 여기에 드래그하거나 클릭하여 업로드하세요</strong></p>
+            <p style="font-size: 8.5pt; color: #64748b; margin-top: 5px;">(형식: 상품명, 바코드, 다중로케이션, 재고수량, 배송대기, 가용재고 필드 포함)</p>
+            <input type="file" id="csv-file-input" accept=".csv">
+        </div>
+        
+        <!-- 데모 데이터 채우기 버튼 -->
+        <div style="text-align: right; margin-top: 10px;">
+            <button onclick="loadDemoData()" style="padding: 6px 12px; font-size: 8.5pt; background-color: #cbd5e1; border: none; border-radius: 4px; cursor: pointer;">테스트 데모 데이터 불러오기</button>
+        </div>
+    </div>
+
+    <!-- 2단계: PDA 바코드/로케이션 스캔 및 검증 -->
+    <div class="card">
+        <div class="card-title">Step 2: 현장 이동 작업 검증 (PDA / 모바일 지원)</div>
+        <p style="font-size: 9.5pt; color: #64748b; margin-bottom: 12px;">현장에서 박스를 이동시키기 전, 로케이션 바코드 또는 상품 바코드를 스캔해 보세요.</p>
+        
+        <div class="search-box">
+            <input type="text" id="scan-input" placeholder="로케이션(예: 2P-04-01-02) 또는 바코드 스캔">
+            <button onclick="validateScan()">검증하기</button>
+        </div>
+
+        <!-- 실시간 판정 알림 창 -->
+        <div id="result-display"></div>
+    </div>
+
+    <!-- 3단계: 오늘 자 배송대기(잠금) 목록 전체보기 -->
+    <div class="card">
+        <div class="card-title">Step 3: 이동 금지 / 주의 관리 대상 모니터링</div>
+        
+        <div class="tab-menu">
+            <button class="tab-btn active" onclick="filterTable('all')">전체보기</button>
+            <button class="tab-btn" onclick="filterTable('locked')" style="color: var(--accent-color);">🚨 이동 금지 (배송대기 존재)</button>
+            <button class="tab-btn" onclick="filterTable('safe')" style="color: var(--success-color);">🟢 이동 가능 (배송대기 0)</button>
+        </div>
+
+        <div class="table-container">
+            <table id="inventory-table">
+                <thead>
+                    <tr>
+                        <th>상품명</th>
+                        <th>바코드</th>
+                        <th>로케이션</th>
+                        <th>재고수량</th>
+                        <th>배송대기</th>
+                        <th>가용재고</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-tbody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #94a3b8; padding: 30px 0;">WMS 데이터를 업로드하거나 데모 데이터를 불러오면 목록이 표시됩니다.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 사용 방법 가이드 -->
+    <div class="card" style="background-color: #f1f5f9;">
+        <div class="card-title" style="border-left-color: #64748b; color: #334155;">💡 깃허브 페이지를 통한 현장 배포 가이드</div>
+        <ul class="guide-list">
+            <li><strong>동작 원리:</strong> 서버가 없이 사용자의 브라우저 메모리 안에서 데이터가 즉시 처리되므로 개인정보가 안전하게 보호됩니다.</li>
+            <li><strong>매일 아침 업데이트 루틴:</strong>
+                <ol style="margin-left: 15px; margin-top: 5px;">
+                    <li>출근 후 WMS에서 <strong>[현재고 현황 조회]</strong>를 실행합니다.</li>
+                    <li>조회된 화면을 <strong>Excel 또는 CSV 파일로 다운로드</strong>합니다.</li>
+                    <li>이 깃허브 페이지에 접속하여 다운받은 파일을 <strong>드래그 앤 드롭</strong>으로 넣습니다.</li>
+                    <li>현장 작업자들이 각자의 스마트폰/PDA로 이 페이지 주소에 접속하여 검증 기능을 사용합니다.</li>
+                </ol>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    let inventoryData = [];
+
+    // 데모 데이터 정의
+    const demoData = [
+        { name: "[파미아] 무브스테이 캣타워", barcode: "8800280934857", location: "2P-04-01-02", qty: 24, pending: 2, available: 22 },
+        { name: "[파미아] 무브스테이 캣타워", barcode: "8800280934857", location: "2P-04-03-02", qty: 36, pending: 0, available: 36 },
+        { name: "[파미아] 무브스테이 캣타워", barcode: "8800280934857", location: "2P-05-03-01", qty: 36, pending: 0, available: 36 },
+        { name: "[파미아] 무브스테이 캣타워", barcode: "8800280934857", location: "2P-05-03-02", qty: 36, pending: 0, available: 36 },
+        { name: "[파미아] 무브스테이 캣타워", barcode: "8800280934857", location: "2P-06-01-02", qty: 36, pending: 5, available: 31 },
+        { name: "[파미아] 무브스테이 캣타워", barcode: "8800280934857", location: "2P-06-02-01", qty: 36, pending: 0, available: 36 },
+        { name: "[파미아] 무브스테이 캣타워", barcode: "8800280934857", location: "2P-06-02-02", qty: 36, pending: 0, available: 36 },
+        { name: "[파미아] 무브스테이 캣타워", barcode: "8800280934857", location: "2P-06-03-02", qty: 36, pending: 0, available: 36 }
+    ];
+
+    function loadDemoData() {
+        inventoryData = [...demoData];
+        updateDataStatus(true, "데모 데이터 활성화됨");
+        renderTable(inventoryData);
+    }
+
+    function updateDataStatus(isLoaded, text) {
+        const statusEl = document.getElementById("data-status");
+        if (isLoaded) {
+            statusEl.innerHTML = `🟢 ${text}`;
+            statusEl.style.color = "var(--success-color)";
+        } else {
+            statusEl.innerHTML = `● ${text}`;
+            statusEl.style.color = "var(--accent-color)";
+        }
+    }
+
+    // CSV 파일 파싱 처리
+    document.getElementById('csv-file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const text = evt.target.result;
+            parseCSV(text);
+        };
+        reader.readAsText(file, "EUC-KR"); // 한글 깨짐 방지 위해 EUC-KR 설정
+    });
+
+    function parseCSV(text) {
+        const lines = text.split('\n');
+        if (lines.length < 2) return;
+
+        inventoryData = [];
+        // 헤더 인덱스 찾기
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        
+        // 인덱스 매핑 (실제 WMS 엑셀 컬럼명 맞춤형 매핑 필요)
+        const nameIdx = headers.findIndex(h => h.includes("상품명"));
+        const barcodeIdx = headers.findIndex(h => h.includes("바코드"));
+        const locIdx = headers.findIndex(h => h.includes("로케이션") || h.includes("다중로케이션"));
+        const qtyIdx = headers.findIndex(h => h.includes("재고수량"));
+        const pendingIdx = headers.findIndex(h => h.includes("배송대기"));
+        const availIdx = headers.findIndex(h => h.includes("가용재고"));
+
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const cols = lines[i].split(',').map(c => c.trim().replace(/"/g, ''));
+            
+            if (cols.length > Math.max(nameIdx, barcodeIdx, locIdx)) {
+                inventoryData.push({
+                    name: cols[nameIdx] || "알 수 없는 상품",
+                    barcode: cols[barcodeIdx] || "",
+                    location: cols[locIdx] || "미지정",
+                    qty: parseInt(cols[qtyIdx]) || 0,
+                    pending: parseInt(cols[pendingIdx]) || 0,
+                    available: parseInt(cols[availIdx]) || 0
+                });
+            }
+        }
+
+        if (inventoryData.length > 0) {
+            updateDataStatus(true, `${inventoryData.length}건 재고 로드 완료`);
+            renderTable(inventoryData);
+        } else {
+            updateDataStatus(false, "데이터 파싱 실패 (컬럼명을 확인해 주세요)");
+        }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById("inventory-tbody");
+        tbody.innerHTML = "";
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 30px 0;">조건에 일치하는 데이터가 없습니다.</td></tr>`;
+            return;
+        }
+
+        data.forEach(item => {
+            const isLocked = item.pending > 0;
+            const statusBadge = isLocked 
+                ? `<span class="badge badge-lock">🚨 이동 금지</span>` 
+                : `<span class="badge badge-safe">🟢 이동 가능</span>`;
+            
+            const tr = document.createElement("tr");
+            if (isLocked) {
+                tr.style.backgroundColor = "#fff5f5";
+            }
+            
+            tr.innerHTML = `
+                <td><strong>${item.name}</strong></td>
+                <td><code style="background:#f1f5f9; padding:2px 4px; border-radius:4px;">${item.barcode}</code></td>
+                <td style="font-weight:bold; color:var(--primary-dark);">${item.location}</td>
+                <td>${item.qty}</td>
+                <td style="color:${isLocked ? 'var(--accent-color)' : 'inherit'}; font-weight:${isLocked ? 'bold' : 'normal'};">${item.pending}</td>
+                <td style="font-weight:bold; color:var(--primary-color);">${item.available}</td>
+                <td>${statusBadge}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterTable(type) {
+        // 탭 활성화 변경
+        const btns = document.querySelectorAll(".tab-btn");
+        btns.forEach(btn => btn.classList.remove("active"));
+        event.target.classList.add("active");
+
+        if (type === "all") {
+            renderTable(inventoryData);
+        } else if (type === "locked") {
+            const filtered = inventoryData.filter(item => item.pending > 0);
+            renderTable(filtered);
+        } else if (type === "safe") {
+            const filtered = inventoryData.filter(item => item.pending === 0);
+            renderTable(filtered);
+        }
+    }
+
+    // 스캔/검증 처리
+    function validateScan() {
+        const inputVal = document.getElementById("scan-input").value.trim().toUpperCase();
+        const display = document.getElementById("result-display");
+
+        if (!inputVal) {
+            alert("로케이션이나 바코드를 입력 후 스캔하세요.");
+            return;
+        }
+
+        if (inventoryData.length === 0) {
+            alert("먼저 Step 1에서 WMS 데이터를 등록해 주세요.");
+            return;
+        }
+
+        // 로케이션 또는 바코드로 데이터 탐색
+        const matches = inventoryData.filter(item => 
+            item.location.toUpperCase() === inputVal || 
+            item.barcode === inputVal
+        );
+
+        display.style.display = "block";
+
+        if (matches.length === 0) {
+            display.className = "status-warn";
+            display.innerHTML = `🔍 <strong>조회 불가 [${inputVal}]</strong><br><span style="font-size:10pt; font-weight:normal;">WMS 재고 목록에 일치하는 로케이션 또는 바코드가 없습니다. 신규 적재일 수 있습니다.</span>`;
+            return;
+        }
+
+        // 매칭 대상 중 배송대기가 걸려 있는 것이 단 하나라도 있는지 검증
+        const lockedItems = matches.filter(item => item.pending > 0);
+
+        if (lockedItems.length > 0) {
+            display.className = "status-lock";
+            let details = lockedItems.map(item => `[${item.location}] ${item.name} (${item.pending}개 대기 중)`).join('<br>');
+            display.innerHTML = `
+                <div style="font-size:14pt; margin-bottom:5px;">🚨 이적 및 이동 절대 불가! (LOCK)</div>
+                <div style="font-size:10.5pt; font-weight:normal; margin-top:8px; text-align:left; background:rgba(255,255,255,0.6); padding:10px; border-radius:6px;">
+                    <strong>사유:</strong> 해당 로케이션/품목은 당일 B2B 배송대기(할당) 물량이 묶여 있습니다. 실물 이동 시 전산과 싱크가 완전히 깨집니다.<br>
+                    <div style="margin-top:8px; border-top:1px dashed var(--accent-color); padding-top:8px;">
+                        <strong>상세 내역:</strong><br>${details}
+                    </div>
+                </div>
+            `;
+        } else {
+            display.className = "status-safe";
+            display.innerHTML = `
+                <div style="font-size:14pt; margin-bottom:5px;">🟢 실물 이동 가능 (SAFE)</div>
+                <div style="font-size:10.5pt; font-weight:normal; margin-top:5px;">
+                    해당 구역은 활성화된 배송대기(할당) 물량이 없습니다.<br>
+                    이적 작업 완료 후 <strong>WMS 로케이션 이동 처리</strong>를 즉시 진행하셔도 좋습니다.
+                </div>
+            `;
+        }
+    }
+
+    // 엔터키 입력 지원 (PDA 스캐너 연동용)
+    document.getElementById("scan-input").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") {
+            validateScan();
+        }
+    });
+</script>
+
+</body>
+</html>
